@@ -1,16 +1,18 @@
-﻿using System;
+﻿using Rssdp;
+using SharpCaster.Annotations;
+using SharpCaster.Models;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Rssdp;
-using SharpCaster.Annotations;
-using SharpCaster.Models;
 
 namespace SharpCaster
 {
     public class DeviceLocator : INotifyPropertyChanged
     {
+        private const string CHROMECAST_DEVICE_TYPE = "urn:dial-multiscreen-org:device:dial:1";
+
         public ObservableCollection<Chromecast> DiscoveredDevices { get; set; }
 
         public DeviceLocator()
@@ -22,10 +24,15 @@ namespace SharpCaster
         {
             using (var deviceLocator = new SsdpDeviceLocator())
             {
-                var foundDevices = await deviceLocator.SearchAsync("urn:dial-multiscreen-org:device:dial:1", TimeSpan.FromMilliseconds(5000));
+                var foundDevices = await deviceLocator.SearchAsync(CHROMECAST_DEVICE_TYPE, TimeSpan.FromMilliseconds(5000));
 
                 foreach (var foundDevice in foundDevices)
                 {
+                    // Make sure is a Chromecast device
+                    if (foundDevice.NotificationType != CHROMECAST_DEVICE_TYPE)
+                    {
+                        continue;
+                    }
                     var fullDevice = await foundDevice.GetDeviceInfo();
                     Uri myUri;
                     Uri.TryCreate("https://" + foundDevice.DescriptionLocation.Host, UriKind.Absolute, out myUri);
